@@ -42,7 +42,7 @@ object BracketLaws {
       Law("Bracket: bracket is derived from bracketCase") { BF.bracketIsDerivedFromBracketCase(EQ) },
       Law("Bracket: guarantee is derived from bracket") { BF.guaranteeIsDerivedFromBracket(BF.just(Unit), EQ) },
       Law("Bracket: guaranteeCase is derived from bracketCase") { BF.guaranteeCaseIsDerivedFromBracketCase({ BF.just(Unit) }, EQ) },
-      Law("Bracket: onCancel is derived from guaranteeCase") { BF.onCancelIsDerivedFromGuaranteeCase(GENK, EQ) },
+      // On cancel derivation cannot be tested as Bracket doesn't have the power to cancel
       Law("Bracket: onError is derived from guaranteeCase") { BF.onErrorIsDerivedFromGuaranteeCase(GENK, EQ) }
     )
   }
@@ -170,19 +170,6 @@ object BracketLaws {
   ): Unit =
     forAll(Gen.int().applicativeError(this)) { fa: Kind<F, Int> ->
       fa.guaranteeCase(finalizer).equalUnderTheLaw(just(Unit).bracketCase({ _, e -> finalizer(e) }) { fa }, EQ)
-    }
-
-  fun <F> Bracket<F, Throwable>.onCancelIsDerivedFromGuaranteeCase(
-    GENK: GenK<F>,
-    EQ: Eq<Kind<F, Int>>
-  ): Unit =
-    forAll(Gen.int().applicative(this), GENK.genK(Gen.unit())) { fa: Kind<F, Int>, ff: Kind<F, Unit> ->
-      fa.onCancel(ff).equalUnderTheLaw(fa.guaranteeCase {
-        when (it) {
-          is ExitCase.Canceled -> ff
-          else -> unit()
-        }
-      }, EQ)
     }
 
   fun <F> Bracket<F, Throwable>.onErrorIsDerivedFromGuaranteeCase(

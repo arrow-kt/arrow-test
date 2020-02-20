@@ -184,8 +184,14 @@ object ConcurrentLaws {
         val mvar = MVar(a, this@acquireBracketIsNotCancelable).bind()
         mvar.take().bind()
         val p = Promise.uncancelable<F, Unit>(this@acquireBracketIsNotCancelable).bind()
-        val task = p.complete(Unit).flatMap { mvar.put(b) }
-          .bracket(use = { never<Int>() }, release = { unit() })
+        val task = just(Unit).bracket(
+          use = {
+            mvar.put(b)
+              .flatMap { p.complete(Unit) }
+              .flatMap { never<Int>() }
+          },
+          release = { unit() }
+        )
         val (_, cancel) = task.fork(ctx).bind()
         p.get().bind()
         cancel.fork(ctx).bind()
@@ -199,9 +205,13 @@ object ConcurrentLaws {
       fx.concurrent {
         val mvar = MVar(a, this@releaseBracketIsNotCancelable).bind()
         val p = Promise.uncancelable<F, Unit>(this@releaseBracketIsNotCancelable).bind()
-        val task = p.complete(Unit)
-          .bracket(use = { never<Int>() }, release = { mvar.put(b) })
-        val (_, cancel) = task.fork(ctx).bind()
+        val task = just(Unit).bracket(
+          use = {
+            p.complete(Unit).flatMap { never<Int>() }
+          },
+          release = { mvar.put(b) }
+        )
+        val (_, cancel: Kind<F, Unit>) = task.fork().bind()
         p.get().bind()
         cancel.fork(ctx).bind()
         continueOn(ctx)

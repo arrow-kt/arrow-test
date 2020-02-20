@@ -6,7 +6,6 @@ import arrow.core.internal.AtomicIntW
 import arrow.fx.typeclasses.Bracket
 import arrow.fx.typeclasses.ExitCase
 import arrow.test.generators.GenK
-import arrow.test.generators.applicative
 import arrow.test.generators.applicativeError
 import arrow.test.generators.functionAToB
 import arrow.test.generators.raiseError

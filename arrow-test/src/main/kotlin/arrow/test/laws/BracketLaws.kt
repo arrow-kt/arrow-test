@@ -16,6 +16,7 @@ import arrow.typeclasses.Eq
 import arrow.typeclasses.EqK
 import arrow.typeclasses.Functor
 import arrow.typeclasses.Selective
+import io.kotlintest.fail
 import io.kotlintest.properties.Gen
 import io.kotlintest.properties.forAll
 
@@ -168,7 +169,8 @@ object BracketLaws {
     EQ: Eq<Kind<F, Int>>
   ): Unit =
     forAll(Gen.int().applicativeError(this)) { fa: Kind<F, Int> ->
-      fa.guaranteeCase(finalizer).equalUnderTheLaw(just(Unit).bracketCase({ _, e -> finalizer(e) }) { fa }, EQ)
+//      fa.guaranteeCase(finalizer).equalUnderTheLaw(just(Unit).bracketCase({ _, e -> finalizer(e) }) { fa }, EQ)
+      fail("")
     }
 
   fun <F> Bracket<F, Throwable>.onErrorIsDerivedFromGuaranteeCase(

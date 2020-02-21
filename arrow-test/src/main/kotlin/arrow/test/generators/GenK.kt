@@ -20,6 +20,7 @@ import arrow.core.MapK
 import arrow.core.MapKPartialOf
 import arrow.core.NonEmptyList
 import arrow.core.Option
+import arrow.core.Right
 import arrow.core.SequenceK
 import arrow.core.SetK
 import arrow.core.SortedMapK
@@ -172,10 +173,14 @@ fun <F, W> WriterT.Companion.genK(
 }
 
 fun IO.Companion.genK() = object : GenK<ForIO> {
-  override fun <A> genK(gen: Gen<A>): Gen<Kind<ForIO, A>> =
-    gen.map {
-      IO.just(it)
-    }
+  override fun <A> genK(gen: Gen<A>): Gen<Kind<ForIO, A>> = Gen.oneOf(
+    gen.map(IO.Companion::just),
+    gen.map { a -> async<A> { cb -> cb(Right(a)) } },
+    gen.map { a -> effect { a } },
+    gen.map { a -> later { a } },
+    gen.map { a -> cancelable<A> { cb -> cb(Right(a)); unit } },
+    Gen.throwable().map(IO.Companion::raiseError)
+  )
 }
 
 fun <S, F> AccumT.Companion.genK(genkF: GenK<F>, genS: Gen<S>) =

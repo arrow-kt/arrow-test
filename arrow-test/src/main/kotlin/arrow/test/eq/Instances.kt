@@ -49,7 +49,7 @@ fun <F, S> StateT.Companion.eqK(EQKF: EqK<F>, EQS: Eq<S>, M: Monad<F>, s: S) = o
     }
 }
 
-fun IO.Companion.eqK(timeout: Duration = 60.seconds) = object : EqK<ForIO> {
+fun IO.Companion.eqK(timeout: Duration = 5.seconds) = object : EqK<ForIO> {
   override fun <A> Kind<ForIO, A>.eqK(other: Kind<ForIO, A>, EQ: Eq<A>): Boolean =
     Either.eq(Eq.any(), EQ).run {
       IO.applicative().mapN(fix().attempt(), other.fix().attempt()) { (a, b) -> a.eqv(b) }

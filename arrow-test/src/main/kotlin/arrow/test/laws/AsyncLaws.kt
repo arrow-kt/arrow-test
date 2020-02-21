@@ -23,6 +23,7 @@ import arrow.typeclasses.Functor
 import arrow.typeclasses.Selective
 import io.kotlintest.properties.Gen
 import io.kotlintest.properties.forAll
+import io.kotlintest.shouldBe
 import kotlinx.coroutines.newSingleThreadContext
 
 object AsyncLaws {
@@ -58,9 +59,10 @@ object AsyncLaws {
     AC: Async<F>,
     GENK: GenK<F>,
     EQK: EqK<F>,
-    testStackSafety: Boolean = true
+    testStackSafety: Boolean = true,
+    iterations: Int = 20_000
   ): List<Law> =
-    MonadDeferLaws.laws(AC, GENK, EQK, testStackSafety) +
+    MonadDeferLaws.laws(AC, GENK, EQK, testStackSafety, iterations) +
       asyncLaws(AC, GENK, EQK)
 
   fun <F> laws(
@@ -70,9 +72,10 @@ object AsyncLaws {
     SL: Selective<F>,
     GENK: GenK<F>,
     EQK: EqK<F>,
-    testStackSafety: Boolean = true
+    testStackSafety: Boolean = true,
+    iterations: Int = 20_000
   ): List<Law> =
-    MonadDeferLaws.laws(AC, FF, AP, SL, GENK, EQK, testStackSafety) +
+    MonadDeferLaws.laws(AC, FF, AP, SL, GENK, EQK, testStackSafety, iterations) +
       asyncLaws(AC, GENK, EQK)
 
   fun <F> Async<F>.asyncSuccess(EQ: Eq<Kind<F, Int>>): Unit =
@@ -158,17 +161,16 @@ object AsyncLaws {
       effect.equalUnderTheLaw(continueOn, EQ)
     }
 
-  fun <F> Async<F>.fxLazyEvaluation(EQ: Eq<Boolean>, EQK: Eq<Kind<F, Boolean>>): Unit =
-    forAll(Gen.functionAToB<Unit, Int>(Gen.constant(0))) { f ->
-      val run = AtomicBooleanW(false)
-      val p = fx.async {
-        run.getAndSet(true)
-        run.value
-      }
-
-      run.value.equalUnderTheLaw(false, EQ) &&
-        p.equalUnderTheLaw(just(true), EQK)
+  fun <F> Async<F>.fxLazyEvaluation(EQ: Eq<Boolean>, EQK: Eq<Kind<F, Boolean>>) {
+    val run = AtomicBooleanW(false)
+    val p = fx.async {
+      run.getAndSet(true)
+      run.value
     }
+
+    run.value.equalUnderTheLaw(false, EQ) shouldBe true
+    p.equalUnderTheLaw(just(true), EQK) shouldBe true
+  }
 
   fun <F> Async<F>.derivedDefer(EQK: Eq<Kind<F, String>>) {
     val f: () -> Kind<F, String> = { effect { Thread.currentThread().name } }
@@ -187,7 +189,7 @@ object AsyncLaws {
         continueOn(ctx)
         getCurrentThread()
       }
-      .equalUnderTheLaw(fx.async { ctx.shift().bind(); getCurrentThread() }, EQ)
+        .equalUnderTheLaw(fx.async { ctx.shift().bind(); getCurrentThread() }, EQ)
     }
 
   fun <F> Async<F>.derivedShift(EQ: Eq<Kind<F, Int>>): Unit =
